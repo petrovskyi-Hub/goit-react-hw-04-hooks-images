@@ -1,5 +1,5 @@
-import React, { Component } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 import Searchbar from './components/Searchbar/Searchbar';
@@ -10,149 +10,96 @@ import Loader from './components/Loader/Loader';
 import Modal from './components/Modal/Modal';
 import Error from './components/Error/Error';
 
-class App extends Component {
-  state = {
-    searchQuery: '',
-    query: '',
-    images: [],
-    page: 1,
-    error: null,
-    showLoadMoreBtn: false,
-    isLoading: false,
-    showModal: false,
-    largeImageURL: '',
-  };
+export default function App() {
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState(null);
+  const [showLoadMoreBtn, setShowLoadMoreBtn] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
 
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.images.length > 12) {
-      this.onScroll();
-    }
+  useEffect(() => {
+    if (!query) return;
 
-    if (prevState.query !== this.state.query) {
-      this.setState({
-        images: [],
-        page: 1,
-        error: null,
-        showLoadMoreBtn: false,
-      });
-    }
-  }
+    const fetchImages = async () => {
+      try {
+        const request = await ApiService(query, page);
+        if (request.length === 0) {
+          setError(`No results were found for ${query}!`);
+        }
 
-  handleChange = e => {
-    this.setState({ query: e.target.value });
-  };
+        setImages([...images, ...request]);
 
-  handleSubmit = e => {
-    e.preventDefault();
-    this.searchImgs();
-  };
+        if (request.length >= 12) {
+          setShowLoadMoreBtn(true);
+        } else {
+          setShowLoadMoreBtn(false);
+        }
+      } catch (error) {
+        setError('Something went wrong. Try again.');
+      } finally {
+        setIsLoading(false);
 
-  searchImgs = async () => {
-    const { query, page, showLoadMoreBtn } = this.state;
-
-    if (query.trim() === '') {
-      return toast.info('😱 Please enter a value for search images!');
-    }
-
-    this.toggleLoader();
-
-    try {
-      const request = await ApiService(query, page);
-      this.setState(({ images, page }) => ({
-        images: [...images, ...request],
-        page: page + 1,
-      }));
-
-      if (request.length === 0) {
-        this.setState({ error: `No results were found for ${query}!` });
+        if (images.length > 12) {
+          onScroll();
+        }
       }
+    };
 
-      if (!showLoadMoreBtn && request.length === 12) {
-        this.setState({
-          showLoadMoreBtn: true,
-        });
-      }
+    fetchImages();
+  }, [page, query]);
 
-      if (showLoadMoreBtn && request.length < 12) {
-        this.setState({
-          showLoadMoreBtn: false,
-        });
-      }
-    } catch (error) {
-      this.setState({ error: 'Something went wrong. Try again.' });
-    } finally {
-      this.toggleLoader();
-    }
+  const searchImgs = newQuery => {
+    if (query === newQuery) return;
+
+    setQuery(newQuery);
+    setImages([]);
+    setPage(1);
+    setError(null);
+    setIsLoading(true);
   };
 
-  onLoadMore = () => {
-    this.searchImgs();
+  const onLoadMore = () => {
+    setIsLoading(true);
+    setPage(page + 1);
   };
 
-  onScroll = () => {
+  const onScroll = () => {
     window.scrollTo({
       top: document.documentElement.scrollHeight,
       behavior: 'smooth',
     });
   };
 
-  onOpenModal = e => {
-    this.setState({ largeImageURL: e.target.dataset.source });
-    this.toggleModal();
+  const onOpenModal = e => {
+    setLargeImageURL(e.target.dataset.source);
+    setShowModal(true);
   };
 
-  toggleLoader = () => {
-    this.setState(({ isLoading }) => ({
-      isLoading: !isLoading,
-    }));
-  };
+  return (
+    <div className="App">
+      <Searchbar onHandleSubmit={searchImgs} />
 
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-    }));
-  };
+      {error && <Error texterror={error} />}
 
-  render() {
-    const {
-      images,
-      query,
-      showLoadMoreBtn,
-      isLoading,
-      showModal,
-      largeImageURL,
-      error,
-    } = this.state;
+      {images.length > 0 && (
+        <ImageGallery images={images} onOpenModal={onOpenModal} />
+      )}
 
-    return (
-      <div className="App">
-        <Searchbar
-          handleSubmit={this.handleSubmit}
-          handleChange={this.handleChange}
-          value={query}
+      {isLoading && <Loader />}
+
+      {showLoadMoreBtn && <Button onLoadMore={onLoadMore} />}
+
+      {showModal && (
+        <Modal
+          onCloseModal={() => setShowModal(false)}
+          largeImageURL={largeImageURL}
         />
+      )}
 
-        {error && <Error texterror={error} />}
-
-        {images.length > 0 && (
-          <ImageGallery images={images} onOpenModal={this.onOpenModal} />
-        )}
-
-        {isLoading && <Loader />}
-
-        {showLoadMoreBtn && <Button onLoadMore={this.onLoadMore} />}
-
-        {showModal && (
-          <Modal
-            onToggleModal={this.toggleModal}
-            largeImageURL={largeImageURL}
-          />
-        )}
-
-        <ToastContainer autoClose={4000} />
-      </div>
-    );
-  }
+      <ToastContainer autoClose={4000} />
+    </div>
+  );
 }
-
-export default App;

@@ -1,6 +1,19 @@
 import PropTypes from 'prop-types';
+import { useState } from 'react';
+import { toast } from 'react-toastify';
 
-function Searchbar({ value, handleSubmit, handleChange }) {
+function Searchbar({ onHandleSubmit }) {
+  const [query, setQuery] = useState('');
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    if (query.trim() === '') {
+      return toast.info('😱 Please enter a value for search images!');
+    }
+    onHandleSubmit(query);
+    setQuery('');
+  };
+
   return (
     <header className="Searchbar">
       <form className="SearchForm" onSubmit={handleSubmit}>
@@ -14,17 +27,15 @@ function Searchbar({ value, handleSubmit, handleChange }) {
           autoComplete="off"
           autoFocus
           placeholder="Search images and photos"
-          value={value}
-          onChange={handleChange}
+          value={query}
+          onChange={({ target }) => setQuery(target.value)}
         />
       </form>
     </header>
   );
 }
 Searchbar.propTypes = {
-  handleSubmit: PropTypes.func.isRequired,
-  handleChange: PropTypes.func.isRequired,
-  value: PropTypes.string.isRequired,
+  onHandleSubmit: PropTypes.func.isRequired,
 };
 
 export default Searchbar;
