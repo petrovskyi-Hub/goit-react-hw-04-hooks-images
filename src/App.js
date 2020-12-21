@@ -30,7 +30,9 @@ export default function App() {
           setError(`No results were found for ${query}!`);
         }
 
-        setImages([...images, ...request]);
+        if (request) {
+          addImages(request);
+        }
 
         if (request.length >= 12) {
           setShowLoadMoreBtn(true);
@@ -41,15 +43,16 @@ export default function App() {
         setError('Something went wrong. Try again.');
       } finally {
         setIsLoading(false);
-
-        if (images.length > 12) {
-          onScroll();
-        }
+        onScroll();
       }
     };
 
     fetchImages();
   }, [page, query]);
+
+  const addImages = newImages => {
+    setImages([...images, ...newImages]);
+  };
 
   const searchImgs = newQuery => {
     if (query === newQuery) return;
@@ -66,16 +69,18 @@ export default function App() {
     setPage(page + 1);
   };
 
+  const onOpenModal = e => {
+    setLargeImageURL(e.target.dataset.source);
+    setShowModal(true);
+  };
+
   const onScroll = () => {
+    if (images.length < 12) return;
+
     window.scrollTo({
       top: document.documentElement.scrollHeight,
       behavior: 'smooth',
     });
-  };
-
-  const onOpenModal = e => {
-    setLargeImageURL(e.target.dataset.source);
-    setShowModal(true);
   };
 
   return (
