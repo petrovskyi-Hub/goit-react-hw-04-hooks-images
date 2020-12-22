@@ -31,7 +31,7 @@ export default function App() {
         }
 
         if (request) {
-          addImages(request);
+          setImages(prevImages => [...prevImages, ...request]);
         }
 
         if (request.length >= 12) {
@@ -43,16 +43,14 @@ export default function App() {
         setError('Something went wrong. Try again.');
       } finally {
         setIsLoading(false);
-        onScroll();
+        if (page > 1) {
+          onScroll();
+        }
       }
     };
 
     fetchImages();
   }, [page, query]);
-
-  const addImages = newImages => {
-    setImages([...images, ...newImages]);
-  };
 
   const searchImgs = newQuery => {
     if (query === newQuery) return;
@@ -75,8 +73,6 @@ export default function App() {
   };
 
   const onScroll = () => {
-    if (images.length < 12) return;
-
     window.scrollTo({
       top: document.documentElement.scrollHeight,
       behavior: 'smooth',
